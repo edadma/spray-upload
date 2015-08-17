@@ -21,6 +21,9 @@ object Main extends App with SimpleRoutingApp with SessionDirectives {
 	implicit val context = system.dispatcher
 
 	startServer(interface = "localhost", port = 8080) {
+		val errorHandler = ExceptionHandler {
+			case e: RuntimeException => complete( StatusCodes.BadRequest, e.getMessage )
+		}
 		
 		//
 		// resource renaming routes (these will mostly be removed as soon as possible)
@@ -41,13 +44,51 @@ object Main extends App with SimpleRoutingApp with SessionDirectives {
 		(get & pathSingleSlash) {
 			complete(
 				<html>
-				<body>
-					<form action="/upload" method="post" enctype="multipart/form-data">
-						Select image to upload:
-						<input type="file" name="file"/><br/>
-						<input type="submit" name="submit"/>
-					</form>
-				</body>
+					<head>
+						<meta charset="utf-8"/>
+						<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+						<meta name="viewport" content="width=device-width, initial-scale=1"/>
+						
+						<title>Upload</title>
+
+						<link rel="shortcut icon" href="/favicon.ico"/>
+						
+						<link href="/webjars/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet"/>
+						<link href="/webjars/bootstrap/3.3.5/css/bootstrap-theme.min.css" rel="stylesheet"/>
+						<script src="/webjars/angularjs/1.4.3/angular.min.js"></script>
+						<script src="/webjars/nervgh-angular-file-upload/1.1.5-1/angular-file-upload.js"></script>
+						<script src="/coffee/upload.js"></script>
+					</head>
+					<body ng-app="upload">
+					
+						<form action="/upload" method="post" enctype="multipart/form-data">
+							<fieldset>
+								<legend>Traditional (non AngularJS based) Upload</legend>
+								Select image to upload:
+								<input type="file" name="file"/><br/>
+								<input type="submit" name="submit"/>
+							</fieldset>
+						</form>
+
+						<form method="post" enctype="multipart/form-data" ng-controller="uploadFormCtrl">
+							<fieldset>
+								<legend>AngularJS Based Upload</legend>
+								Select image to upload:
+								<input type="file" nv-file-select="" uploader="uploader"/><br/>
+								<ul>
+										<li ng-repeat="item in uploader.queue">
+												Name: <span ng-bind="item.file.name"></span><br/>
+												<button ng-click="item.upload()">upload</button>
+										</li>
+								</ul>
+							</fieldset>
+						</form>
+						
+						<a href="/download">download</a>
+						
+						<script src="/webjars/jquery/1.11.1/jquery.min.js"></script>
+						<script src="/webjars/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+					</body>
 				</html>
 			)
 		} ~
@@ -60,10 +101,28 @@ object Main extends App with SimpleRoutingApp with SessionDirectives {
 						case e: HttpEntity.NonEmpty =>
 							mime = e.asInstanceOf[HttpEntity.NonEmpty].contentType.mediaType
 							image = e.data.toByteArray
-							extension = mime.fileExtensions.head
 							
 							if (mime.isImage)
 								redirect( "/download", StatusCodes.SeeOther )
+							else
+								complete( StatusCodes.BadRequest, <h1>Expected image file</h1> )
+						case _ => complete( StatusCodes.BadRequest, <h1>Empty file</h1> )
+					}
+			}
+		} ~
+		(post & path( "ng-upload" ) & entity( as[MultipartFormData] )) { formData =>
+			formData get "file" match {
+				case None =>
+					complete( StatusCodes.BadRequest, <h1>Missing file</h1> )
+				case Some( b ) =>
+					b.entity match {
+						case e: HttpEntity.NonEmpty =>
+							mime = e.asInstanceOf[HttpEntity.NonEmpty].contentType.mediaType
+							image = e.data.toByteArray
+							
+							if (mime.isImage) {
+								complete( "" )
+							}
 							else
 								complete( StatusCodes.BadRequest, <h1>Expected image file</h1> )
 						case _ => complete( StatusCodes.BadRequest, <h1>Empty file</h1> )
@@ -86,17 +145,18 @@ object Main extends App with SimpleRoutingApp with SessionDirectives {
 						<link href="/webjars/bootstrap/3.3.5/css/bootstrap-theme.min.css" rel="stylesheet"/>
 					</head>
 					<body>
-						<img class="img-rounded" src="/download/100/100"/> <a href="/">upload</a>
+						<img class="img-rounded" src="/download/200x200"/> <a href="/">upload</a>
 					</body>
 				</html>
 			)
 		} ~
-		(get & path( "download"/IntNumber/IntNumber )) { (width, height) =>
-			complete( Images.http(Images.toJPEG(image, Some(width, height))) )
+		(get & path( "download"/IntNumber~"x"~IntNumber )) { (width, height) =>
+			handleExceptions( errorHandler ) {
+				complete( Images.http(Images.toJPEG(image, Some(width, height))) )
+			}
 		}
 	}
 	
 	var mime: MediaType = null
 	var image: Array[Byte] = null
-	var extension: String = null
 }

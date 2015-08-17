@@ -19,7 +19,10 @@ object Images {
 	def toJPEG( image: Array[Byte], resize: Option[(Int, Int)] ) = convert( image, "JPEG", resize )
 	
 	def convert( image: Array[Byte], typ: String, resize: Option[(Int, Int)] ) = {
-		val img = ImageIO.read( new ByteArrayInputStream(image) )
+		val img = ImageIO.read( new ByteArrayInputStream(image) ) match {
+			case null => sys.error( "can't decode image" )
+			case x => x
+			}
 		val scale = resize != None
 		val (width, height) =
 			resize match {
