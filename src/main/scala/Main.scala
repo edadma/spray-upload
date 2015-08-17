@@ -42,7 +42,8 @@ object Main extends App with SimpleRoutingApp with SessionDirectives {
 		// application routes
 		//
 		(get & pathSingleSlash) {
-			complete(
+			respondWithMediaType( `text/html` ) {
+			complete( "<!DOCTYPE html>" +
 				<html>
 					<head>
 						<meta charset="utf-8"/>
@@ -58,6 +59,7 @@ object Main extends App with SimpleRoutingApp with SessionDirectives {
 						<script src="/webjars/angularjs/1.4.3/angular.min.js"></script>
 						<script src="/webjars/nervgh-angular-file-upload/1.1.5-1/angular-file-upload.js"></script>
 						<script src="/coffee/upload.js"></script>
+						<script src="/js/ngThumb.js"></script>
 					</head>
 					<body ng-app="upload">
 					
@@ -70,19 +72,19 @@ object Main extends App with SimpleRoutingApp with SessionDirectives {
 							</fieldset>
 						</form>
 
-						<form method="post" enctype="multipart/form-data" ng-controller="uploadFormCtrl">
+						<div ng-controller="uploadFormCtrl">
 							<fieldset>
 								<legend>AngularJS Based Upload</legend>
 								Select image to upload:
 								<input type="file" nv-file-select="" uploader="uploader"/><br/>
 								<ul>
-										<li ng-repeat="item in uploader.queue">
-												Name: <span ng-bind="item.file.name"></span><br/>
-												<button ng-click="item.upload()">upload</button>
-										</li>
+									<li ng-repeat="item in uploader.queue">
+										<div ng-thumb="{ file: item._file, height: 100 }"></div>
+										<button ng-click="item.upload()">upload</button>
+									</li>
 								</ul>
 							</fieldset>
-						</form>
+						</div>
 						
 						<a href="/download">download</a>
 						
@@ -91,7 +93,7 @@ object Main extends App with SimpleRoutingApp with SessionDirectives {
 					</body>
 				</html>
 			)
-		} ~
+		}} ~
 		(post & path( "upload" ) & entity( as[MultipartFormData] )) { formData =>
 			formData get "file" match {
 				case None =>
