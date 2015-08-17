@@ -38,7 +38,7 @@ object Main extends App with SimpleRoutingApp with SessionDirectives {
 		//
 		// application routes
 		//
-		(get & path( "upload" )) {
+		(get & pathSingleSlash) {
 			complete(
 				<html>
 				<body>
@@ -54,16 +54,20 @@ object Main extends App with SimpleRoutingApp with SessionDirectives {
 		(post & path( "upload" ) & entity( as[MultipartFormData] )) { formData =>
 			formData get "file" match {
 				case None =>
-					complete( StatusCodes.BadRequest, "Missing file" )
+					complete( StatusCodes.BadRequest, <h1>Missing file</h1> )
 				case Some( b ) =>
-					mime = b.entity.asInstanceOf[HttpEntity.NonEmpty].contentType.mediaType
-					image = b.entity.data.toByteArray
-					extension = mime.fileExtensions.head
-					
-					if (mime.isImage)
-						redirect( "/download", StatusCodes.SeeOther )
-					else
-						complete( StatusCodes.BadRequest, "Expected image file" )
+					b.entity match {
+						case e: HttpEntity.NonEmpty =>
+							mime = e.asInstanceOf[HttpEntity.NonEmpty].contentType.mediaType
+							image = e.data.toByteArray
+							extension = mime.fileExtensions.head
+							
+							if (mime.isImage)
+								redirect( "/download", StatusCodes.SeeOther )
+							else
+								complete( StatusCodes.BadRequest, <h1>Expected image file</h1> )
+						case _ => complete( StatusCodes.BadRequest, <h1>Empty file</h1> )
+					}
 			}
 		} ~
 		(get & path( "download" )) {
@@ -82,7 +86,7 @@ object Main extends App with SimpleRoutingApp with SessionDirectives {
 						<link href="/webjars/bootstrap/3.3.5/css/bootstrap-theme.min.css" rel="stylesheet"/>
 					</head>
 					<body>
-						<img class="img-rounded" src="/download/100/100"/> <a href="/upload">upload</a>
+						<img class="img-rounded" src="/download/100/100"/> <a href="/">upload</a>
 					</body>
 				</html>
 			)
