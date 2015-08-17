@@ -78,7 +78,7 @@ object Main extends App with SimpleRoutingApp with SessionDirectives {
 								<input type="file" nv-file-select="" uploader="uploader"/><br/>
 									<div ng-repeat="item in uploader.queue">
 										<div ng-thumb="{ file: item._file, height: 100 }"></div>
-										<button ng-click="item.upload()">upload</button>
+										<button ng-disabled="uploaded" ng-click="item.upload()">upload</button>
 									</div>
 							</fieldset>
 						</div>
