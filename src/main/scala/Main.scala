@@ -42,8 +42,7 @@ object Main extends App with SimpleRoutingApp with SessionDirectives {
 		// application routes
 		//
 		(get & pathSingleSlash) {
-			respondWithMediaType( `text/html` ) {
-			complete( "<!DOCTYPE html>" +
+			complete( 
 				<html>
 					<head>
 						<meta charset="utf-8"/>
@@ -65,7 +64,7 @@ object Main extends App with SimpleRoutingApp with SessionDirectives {
 					
 						<form action="/upload" method="post" enctype="multipart/form-data">
 							<fieldset>
-								<legend>Traditional (non AngularJS based) Upload</legend>
+								<legend>Traditional</legend>
 								Select image to upload:
 								<input type="file" name="file"/><br/>
 								<input type="submit" name="submit"/>
@@ -74,15 +73,13 @@ object Main extends App with SimpleRoutingApp with SessionDirectives {
 
 						<div ng-controller="uploadFormCtrl">
 							<fieldset>
-								<legend>AngularJS Based Upload</legend>
+								<legend>AngularJS Based</legend>
 								Select image to upload:
 								<input type="file" nv-file-select="" uploader="uploader"/><br/>
-								<ul>
-									<li ng-repeat="item in uploader.queue">
+									<div ng-repeat="item in uploader.queue">
 										<div ng-thumb="{ file: item._file, height: 100 }"></div>
 										<button ng-click="item.upload()">upload</button>
-									</li>
-								</ul>
+									</div>
 							</fieldset>
 						</div>
 						
@@ -93,7 +90,7 @@ object Main extends App with SimpleRoutingApp with SessionDirectives {
 					</body>
 				</html>
 			)
-		}} ~
+		} ~
 		(post & path( "upload" ) & entity( as[MultipartFormData] )) { formData =>
 			formData get "file" match {
 				case None =>

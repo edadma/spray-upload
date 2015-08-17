@@ -9,6 +9,4 @@ app.controller( 'uploadFormCtrl', ['$scope', 'FileUploader', ($scope, FileUpload
 				this.queue.shift()
 		)
 		
-	$scope.submit = ->
-	
 	] )
